@@ -1,0 +1,32 @@
+{
+  "name": "musicjson-similarity-demo",
+  "version": "1.0.0",
+  "description": "MusicJSON similarity showcase application",
+  "private": true,
+  "main": "public/index.html",
+  "scripts": {
+    "install": "napa",
+    "postinstall": "npm run copyfiles && npm run build",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "copyfiles": "./node_modules/.bin/copyfiles -f ./node_modules/abcjs/bin/abcjs_basic_2.3-min.js ./public",
+    "build": "./node_modules/.bin/browserify ./source/main.js -o ./public/bundle.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/freakimkaefig/musicjson-similarity-demo.git"
+  },
+  "author": "Lukas Lamm <info@lukaslamm.com>",
+  "license": "Unlicense",
+  "devDependencies": {
+    "browserify": "^13.1.0",
+    "copyfiles": "^1.0.0",
+    "napa": "^2.3.0"
+  },
+  "dependencies": {
+    "musicjson-toolbox": "^1.2.0",
+    "musicjson2abc": "^0.5.0"
+  },
+  "napa": {
+    "abcjs": "paulrosen/abcjs"
+  }
+}
