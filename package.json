@@ -23,8 +23,8 @@
     "napa": "^2.3.0"
   },
   "dependencies": {
-    "musicjson-toolbox": "^1.2.0",
-    "musicjson2abc": "^0.5.0"
+    "musicjson-toolbox": ">=1.2.3",
+    "musicjson2abc": ">=0.5.2"
   },
   "napa": {
     "abcjs": "paulrosen/abcjs"

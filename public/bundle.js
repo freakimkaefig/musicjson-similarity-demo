@@ -1,60 +1,4 @@
 (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
-var MusicjsonToolbox = require('musicjson-toolbox');
-var musicjson2abc = require('musicjson2abc');
-
-var parserParams = {},
-    renderParams = {};
-    engraverParams = {
-        add_classes: true,
-        staffwidth: 570,
-        listener: {
-            highlight: function(abcElem) {
-                console.log("highlight", abcElem);
-            },
-            modelChanged: function(abcElem) {
-                console.log("modelChanged", abcElem);
-            }
-        }
-    },
-    midiParams = {};
-
-var json1, json2;
-
-function handleFileSelect(event) {
-    var targetId = event.target.id;
-    var render = event.target.dataset.render;
-    var file = event.target.files[0];
-
-    var reader = new FileReader();
-    reader.readAsText(file);
-    reader.onload = (function(theFile) {
-        return function(e) {
-            var json = JSON.parse(e.target.result);
-            var abc = musicjson2abc.json2abc(JSON.stringify(json));
-            ABCJS.renderAbc(render, abc, parserParams, engraverParams, renderParams);
-
-            if (targetId === 'file1') {
-                json1 = json;
-            } else if (targetId === 'file2') {
-                json2 = json;
-            }
-
-            if (typeof json1 !== 'undefined' && typeof json2 !== 'undefined') {
-                document.getElementById('similarity-ms').innerHTML = MusicjsonToolbox.pitchDurationSimilarity(json1, json2, false);
-                document.getElementById('similarity-gar').innerHTML = MusicjsonToolbox.pitchDurationSimilarity(json1, json2, true);
-                document.getElementById('similarity-parson').innerHTML = MusicjsonToolbox.parsonSimilarity(json1, json2);
-                document.getElementById('similarity-interval').innerHTML = MusicjsonToolbox.intervalSimilarity(json1, json2);
-            }
-        }
-    })(file);
-
-
-}
-document.getElementById('file1').addEventListener('change', handleFileSelect, false);
-document.getElementById('file2').addEventListener('change', handleFileSelect, false);
-
-
-},{"musicjson-toolbox":2,"musicjson2abc":3}],2:[function(require,module,exports){
 (function() {
   'use strict';
 
@@ -265,12 +209,15 @@ document.getElementById('file2').addEventListener('change', handleFileSelect, fa
       var repeatStart = -1;
 
       // loop over measures
+      var absoluteNoteCounter = 0;
       for (var i = 0; i < obj.measures.length; i++) {
 
-        // add note and measure number for eventual identification
+        // add note and measure number for identification
         for (var j = 0; j < obj.measures[i].notes.length; j++) {
           obj.measures[i].notes[j].measureNumber = i;
           obj.measures[i].notes[j].noteNumber = j;
+          obj.measures[i].notes[j].noteNumberAbsolute = absoluteNoteCounter;
+          absoluteNoteCounter++;
         }
 
         // store repeat start point
@@ -321,8 +268,9 @@ document.getElementById('file2').addEventListener('change', handleFileSelect, fa
       tempIntervals.push({
         value: '*',
         duration: '*',
+        measureNumber: 0,
         noteNumber: 0,
-        measureNumber: 0
+        noteNumberAbsolute: 0
       });
 
       for (var i = 1; i < notes.length; i++) {
@@ -334,8 +282,9 @@ document.getElementById('file2').addEventListener('change', handleFileSelect, fa
         var tempNote = {
           value: pitchDiff,
           duration: durationDiff,
+          measureNumber: notes[i].measureNumber,
           noteNumber: notes[i].noteNumber,
-          measureNumber: notes[i].measureNumber
+          noteNumberAbsolute: notes[i].noteNumberAbsolute
         };
         tempIntervals.push(tempNote);
       }
@@ -355,8 +304,9 @@ document.getElementById('file2').addEventListener('change', handleFileSelect, fa
       // add initial parsons item '*'
       tempParsons.push({
         value: '*',
+        measureNumber: 0,
         noteNumber: 0,
-        measureNumber: 0
+        noteNumberAbsolute: 0
       });
 
       for (var i = 1; i < notes.length; i++) {
@@ -376,8 +326,9 @@ document.getElementById('file2').addEventListener('change', handleFileSelect, fa
         // add parsons code item to array
         tempParsons.push({
           value: parson,
+          measureNumber: notes[i].measureNumber,
           noteNumber: notes[i].noteNumber,
-          measureNumber: notes[i].measureNumber
+          noteNumberAbsolute: notes[i].noteNumberAbsolute
         });
       }
 
@@ -495,7 +446,8 @@ document.getElementById('file2').addEventListener('change', handleFileSelect, fa
       return array.map(function(item) {
         return {
           measure: item.measureNumber,
-          note: item.noteNumber
+          note: item.noteNumber,
+          noteAbsolute: item.noteNumberAbsolute
         };
       });
     },
@@ -861,7 +813,7 @@ document.getElementById('file2').addEventListener('change', handleFileSelect, fa
           max = rowMax;
         }
       }
-      return (max - matrix[a.length][b.length]) / max;
+      return 1 - (matrix[a.length][b.length] / max);
     },
 
     /**
@@ -1138,7 +1090,7 @@ document.getElementById('file2').addEventListener('change', handleFileSelect, fa
     },
 
     /**
-     * Returns minimum edit-distance between searched notes and the given document.
+     * Returns fine score for similarity between searched notes and the given document.
      * Calculation is based on pitch and duration values.
      *
      * @param {object} object - The musicjson document
@@ -1186,9 +1138,9 @@ document.getElementById('file2').addEventListener('change', handleFileSelect, fa
      * @param {string} search - A string in parsons code (e.g. '*udu')
      * @returns {Array} The fine score for similarity for each ngram (0-1)
      */
-    distanceParsonsNgrams: function(object, search) {
+    parsonsNgramSimilarity: function(object, search) {
       var ngrams = this.ngrams(this.parsons(this.notes(object, false, false)), search.length);
-      var distances = [];
+      var similarities = [];
 
       for (var i = 0; i < ngrams.length; i++) {
 
@@ -1199,8 +1151,8 @@ document.getElementById('file2').addEventListener('change', handleFileSelect, fa
           }
         }
 
-        distances.push({
-          distance: this.stringEditDistance(
+        similarities.push({
+          similarity: this.stringEditDistance(
             this.valueMapping(ngrams[i]).join(''),
             search
           ),
@@ -1208,7 +1160,7 @@ document.getElementById('file2').addEventListener('change', handleFileSelect, fa
         });
       }
 
-      return distances;
+      return similarities;
     },
 
     /**
@@ -1219,19 +1171,19 @@ document.getElementById('file2').addEventListener('change', handleFileSelect, fa
      * @param {Array} search - An array of pitch values (e.g. [1, 6, 1, 6])
      * @returns {Array} The fine score for similarity for each ngram (0-1)
      */
-    distancePitchNgrams: function(object, search) {
+    pitchNgramSimilarity: function(object, search) {
       var keyAdjust = parseInt(object.attributes.key.fifths);
       var ngrams = this.ngrams(this.notes(object, false, false), search.length);
-      var distances = [];
+      var similarities = [];
 
       for (var i = 0; i < ngrams.length; i++) {
-        distances.push({
-          distance: this.arrayEditDistance(this.pitchValues(ngrams[i], keyAdjust), search),
+        similarities.push({
+          similarity: this.arrayEditDistance(this.pitchValues(ngrams[i], keyAdjust), search),
           highlight: this.highlightMapping(ngrams[i])
         });
       }
 
-      return distances;
+      return similarities;
     },
 
     /**
@@ -1242,9 +1194,9 @@ document.getElementById('file2').addEventListener('change', handleFileSelect, fa
      * @param {Array} search - An array of intervals (e.g. [0, 5, -5, 5])
      * @returns {Array} The fine score for similarity for each ngram (0-1)
      */
-    distanceIntervalsNgrams: function(object, search) {
+    intervalNgramSimilarity: function(object, search) {
       var ngrams = this.ngrams(this.intervals(this.notes(object, false, false)), search.length);
-      var distances = [];
+      var similarities = [];
 
       for (var i = 0; i < ngrams.length; i++) {
         for (var j = 0; j < ngrams[i].length; j++) {
@@ -1254,8 +1206,8 @@ document.getElementById('file2').addEventListener('change', handleFileSelect, fa
           }
         }
 
-        distances.push({
-          distance: this.arrayEditDistance(
+        similarities.push({
+          similarity: this.arrayEditDistance(
             this.valueMapping(ngrams[i]),
             search
           ),
@@ -1263,7 +1215,7 @@ document.getElementById('file2').addEventListener('change', handleFileSelect, fa
         });
       }
 
-      return distances;
+      return similarities;
     },
 
     /**
@@ -1275,17 +1227,17 @@ document.getElementById('file2').addEventListener('change', handleFileSelect, fa
      * @param {boolean} adjusted - Use adjusted weighting function
      * @returns {Array} The fine score for similarity for each ngram (0-1)
      */
-    distancePitchDurationNgrams: function(object, search, adjusted) {
+    pitchDurationNgramSimilarity: function(object, search, adjusted) {
       var divisions = parseInt(object.attributes.divisions);
       var beatType = parseInt(object.attributes.time['beat-type']);
       var keyAdjust = parseInt(object.attributes.key.fifths);
       var ngrams = this.ngrams(this.notes(object, false, true), search.length * 2);
-      var distances = [];
+      var similarities = [];
 
       for (var i = 0; i < ngrams.length; i++) {
 
-        distances.push({
-          distance: this.weightedEditDistance(
+        similarities.push({
+          similarity: this.weightedEditDistance(
             this.pitchDurationValues(
               ngrams[i],
               keyAdjust,
@@ -1296,7 +1248,7 @@ document.getElementById('file2').addEventListener('change', handleFileSelect, fa
         });
       }
 
-      return distances;
+      return similarities;
     }
   };
 
@@ -1320,7 +1272,63 @@ document.getElementById('file2').addEventListener('change', handleFileSelect, fa
   }
 }());
 
-},{}],3:[function(require,module,exports){
+},{}],2:[function(require,module,exports){
+var MusicjsonToolbox = require('musicjson-toolbox');
+var musicjson2abc = require('musicjson2abc');
+
+var parserParams = {},
+    renderParams = {};
+    engraverParams = {
+        add_classes: true,
+        staffwidth: 570,
+        listener: {
+            highlight: function(abcElem) {
+                console.log("highlight", abcElem);
+            },
+            modelChanged: function(abcElem) {
+                console.log("modelChanged", abcElem);
+            }
+        }
+    },
+    midiParams = {};
+
+var json1, json2;
+
+function handleFileSelect(event) {
+    var targetId = event.target.id;
+    var render = event.target.dataset.render;
+    var file = event.target.files[0];
+
+    var reader = new FileReader();
+    reader.readAsText(file);
+    reader.onload = (function(theFile) {
+        return function(e) {
+            var json = JSON.parse(e.target.result);
+            var abc = musicjson2abc.json2abc(JSON.stringify(json));
+            ABCJS.renderAbc(render, abc, parserParams, engraverParams, renderParams);
+
+            if (targetId === 'file1') {
+                json1 = json;
+            } else if (targetId === 'file2') {
+                json2 = json;
+            }
+
+            if (typeof json1 !== 'undefined' && typeof json2 !== 'undefined') {
+                document.getElementById('similarity-ms').innerHTML = MusicjsonToolbox.pitchDurationSimilarity(json1, json2, false);
+                document.getElementById('similarity-gar').innerHTML = MusicjsonToolbox.pitchDurationSimilarity(json1, json2, true);
+                document.getElementById('similarity-parson').innerHTML = MusicjsonToolbox.parsonSimilarity(json1, json2);
+                document.getElementById('similarity-interval').innerHTML = MusicjsonToolbox.intervalSimilarity(json1, json2);
+            }
+        }
+    })(file);
+
+
+}
+document.getElementById('file1').addEventListener('change', handleFileSelect, false);
+document.getElementById('file2').addEventListener('change', handleFileSelect, false);
+
+
+},{"musicjson-toolbox":1,"musicjson2abc":3}],3:[function(require,module,exports){
 var circleOfFifths = {
   "major": {
     "-7": "Cb",
@@ -1512,7 +1520,7 @@ function convertJsonToAbc(input) {
     + "\n";
   outputData += "L:"
     + "1/"
-    + (input.attributes.divisions * input.attributes.time["beat-type"])
+    + (input.attributes.divisions * 4)
     + "\n";
   outputData += "K:"
     + getAbcKey(input.attributes.key.fifths, input.attributes.key.mode)
@@ -1634,7 +1642,6 @@ function getAbcNote(prevNote, curNote) {
   var _dotted = '';
   if (curNote.dot === true || curNote.dot === 'true') {
     _dotted = '>';
-    _duration = _duration / 1.5;
   }
 
   // check if rest
@@ -7059,4 +7066,4 @@ module.exports = function() {
     }
   };
 };
-},{"./Common":6}]},{},[1]);
+},{"./Common":6}]},{},[2]);
