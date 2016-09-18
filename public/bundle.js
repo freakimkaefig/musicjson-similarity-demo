@@ -1304,7 +1304,7 @@ function handleFileSelect(event) {
     reader.onload = (function(theFile) {
         return function(e) {
             var json = JSON.parse(e.target.result);
-            var abc = musicjson2abc.json2abc(JSON.stringify(json));
+            var abc = musicjson2abc.json2abc(json);
             ABCJS.renderAbc(render, abc, parserParams, engraverParams, renderParams);
 
             if (targetId === 'file1') {
@@ -1934,7 +1934,7 @@ var parseXmlNotes = function(notes) {
  * @returns {string}
  */
 exports.json2abc = function(data) {
-  return convertJsonToAbc(JSON.parse(data));
+  return convertJsonToAbc(data);
 };
 
 /**

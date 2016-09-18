@@ -24,7 +24,7 @@
   },
   "dependencies": {
     "musicjson-toolbox": ">=1.2.3",
-    "musicjson2abc": ">=0.5.2"
+    "musicjson2abc": ">=0.5.4"
   },
   "napa": {
     "abcjs": "paulrosen/abcjs"
