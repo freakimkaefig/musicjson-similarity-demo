@@ -17,6 +17,8 @@
             </div>
         </div>
 
+        <hr>
+
         <div class="row">
             <div class="col">
                 <p>
@@ -32,9 +34,72 @@
             </div>
         </div>
 
+        <hr>
+
+        <div class="row">
+            <div class="col">
+                <h4>Parameters: Mongeau &amp; Sankoff, 1990</h4>
+                <p>
+                    <label for="k">k:</label>
+                    <input type="number" id="k" name="k" min="0" max="1" step="0.01">
+                    <button class="kButton" data-k="k" data-value="0.148">0.148</button>
+                    <button class="kButton" data-k="k" data-value="0.248">0.248</button>
+                    <button class="kButton" data-k="k" data-value="0.348">0.348*</button>
+                    <button class="kButton" data-k="k" data-value="0.448">0.448</button>
+                    <button class="kButton" data-k="k" data-value="0.548">0.548</button>
+                </p>
+            </div>
+            <div class="col">
+                <h4>Parameters: Gomez, Abad-Mota &amp; Ruckhaus, 2007</h4>
+                <p>
+                    <label for="k1">k1:</label>
+                    <input type="number" id="k1" name="k1" min="0" max="1" step="0.01">
+                    <button class="kButton" data-k="k1" data-value="0.1">0.1</button>
+                    <button class="kButton" data-k="k1" data-value="0.2">0.2</button>
+                    <button class="kButton" data-k="k1" data-value="0.3">0.3</button>
+                    <button class="kButton" data-k="k1" data-value="0.4">0.4</button>
+                    <button class="kButton" data-k="k1" data-value="0.5">0.5</button>
+                    <button class="kButton" data-k="k1" data-value="0.6">0.6</button>
+                    <button class="kButton" data-k="k1" data-value="0.7">0.7</button>
+                    <button class="kButton" data-k="k1" data-value="0.8">0.8</button>
+                    <button class="kButton" data-k="k1" data-value="0.9">0.9</button>
+                    <button class="kButton" data-k="k1" data-value="1.0">1.0</button>
+                </p>
+                <p>
+                    <label for="k2">k2 (currently not used):</label>
+                    <input type="number" id="k2" name="k2" min="0" max="1" step="0.01">
+                </p>
+                <p>
+                    <label for="k3">k3:</label>
+                    <input type="number" id="k3" name="k3" min="0.01" max="1" step="0.01">
+                    <button class="kButton" data-k="k3" data-value="0.1">0.1</button>
+                    <button class="kButton" data-k="k3" data-value="0.2">0.2</button>
+                    <button class="kButton" data-k="k3" data-value="0.3">0.3</button>
+                    <button class="kButton" data-k="k3" data-value="0.4">0.4</button>
+                    <button class="kButton" data-k="k3" data-value="0.5">0.5</button>
+                    <button class="kButton" data-k="k3" data-value="0.6">0.6</button>
+                    <button class="kButton" data-k="k3" data-value="0.7">0.7</button>
+                    <button class="kButton" data-k="k3" data-value="0.8">0.8</button>
+                    <button class="kButton" data-k="k3" data-value="0.9">0.9</button>
+                    <button class="kButton" data-k="k3" data-value="1.0">1.0</button>
+                </p>
+                <small>
+                    <pre>
+                        deletion: k3 * b.duration
+                        insertion: k3 * a.duration
+                        substitution: w_interval(a, b) + k1 * w_length(a, b)
+                        fragmentation: w_interval(a, b[k]) + ... + w_interval(a, b) + * k1 * w_length(a, b[k] ... b)
+                        consolidation: w_interval(a[k], b) + ... + w_interval(a, b) + * k1 * w_length(a[k] ... a, b)
+                    </pre>
+                </small>
+            </div>
+        </div>
+
+        <hr>
+
         <div class="row">
             <div class="col center">
-                <label>Similarity: </label>
+                <h4>Melodic Similarity</h4>
                 <table width="100%" cellpadding="10" border="1">
                     <thead>
                         <tr>
@@ -55,6 +120,8 @@
                 </table>
             </div>
         </div>
+
+        <hr>
 
         <div class="row">
             <div class="col">

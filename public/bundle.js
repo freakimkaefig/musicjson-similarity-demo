@@ -1,4 +1,96 @@
 (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
+var MusicjsonToolbox = require('musicjson-toolbox');
+var musicjson2abc = require('musicjson2abc');
+
+var parserParams = {},
+  renderParams = {};
+  engraverParams = {
+    add_classes: true,
+    staffwidth: 570,
+    listener: {
+      highlight: function(abcElem) {
+        console.log("highlight", abcElem);
+      },
+      modelChanged: function(abcElem) {
+        console.log("modelChanged", abcElem);
+      }
+    }
+  },
+  midiParams = {};
+
+var json1, json2;
+
+function recalculate() {
+  if (typeof json1 !== 'undefined' && typeof json2 !== 'undefined') {
+    var k = document.getElementById('k').value;
+    var k1 = document.getElementById('k1').value;
+    var k2 = document.getElementById('k2').value;
+    var k3 = document.getElementById('k3').value;
+
+    MusicjsonToolbox.globalK = parseFloat(k);
+    MusicjsonToolbox.globalK1 = parseFloat(k1);
+    MusicjsonToolbox.globalK2 = parseFloat(k2);
+    MusicjsonToolbox.globalK3 = parseFloat(k3);
+
+    document.getElementById('similarity-ms').innerHTML = MusicjsonToolbox.pitchDurationSimilarity(json1, json2, false).toFixed(3);
+    document.getElementById('similarity-gar').innerHTML = MusicjsonToolbox.pitchDurationSimilarity(json1, json2, true).toFixed(3);
+    document.getElementById('similarity-parson').innerHTML = MusicjsonToolbox.parsonSimilarity(json1, json2).toFixed(3);
+    document.getElementById('similarity-interval').innerHTML = MusicjsonToolbox.intervalSimilarity(json1, json2).toFixed(3);
+  }
+}
+
+function handleFileSelect(event) {
+  var targetId = event.target.id;
+  var render = event.target.dataset.render;
+  var file = event.target.files[0];
+
+  var reader = new FileReader();
+  reader.readAsText(file);
+  reader.onload = (function(theFile) {
+    return function(e) {
+      var json = JSON.parse(e.target.result);
+      var abc = musicjson2abc.json2abc(json);
+      ABCJS.renderAbc(render, abc, parserParams, engraverParams, renderParams);
+
+      if (targetId === 'file1') {
+        json1 = json;
+      } else if (targetId === 'file2') {
+        json2 = json;
+      }
+
+      recalculate();
+    }
+  })(file);
+}
+
+function handleKButtonClick(event) {
+  document.getElementById(event.target.dataset.k).value = parseFloat(event.target.dataset.value);
+  recalculate();
+}
+
+// Bind file change
+document.getElementById('file1').addEventListener('change', handleFileSelect, false);
+document.getElementById('file2').addEventListener('change', handleFileSelect, false);
+
+// Bind k change
+document.getElementById('k').addEventListener('keyup', recalculate, false);
+document.getElementById('k1').addEventListener('keyup', recalculate, false);
+document.getElementById('k2').addEventListener('keyup', recalculate, false);
+document.getElementById('k3').addEventListener('keyup', recalculate, false);
+
+// Bind k button click
+var kButtons = document.getElementsByClassName('kButton');
+for (var i = 0; i < kButtons.length; i++) {
+  kButtons[i].addEventListener('click', handleKButtonClick, false);
+}
+
+// Set initial values
+document.getElementById('k').value = MusicjsonToolbox.globalK;
+document.getElementById('k1').value = MusicjsonToolbox.globalK1;
+document.getElementById('k2').value = MusicjsonToolbox.globalK2;
+document.getElementById('k3').value = MusicjsonToolbox.globalK3;
+
+},{"musicjson-toolbox":2,"musicjson2abc":3}],2:[function(require,module,exports){
 (function() {
   'use strict';
 
@@ -128,7 +220,7 @@
      * @constant
      * @type {number}
      */
-    globalK1: 0.46,
+    globalK1: 0.3,
 
     /**
      * Parameter k2 of adjusted Mongeau-Sankoff-Measure according to Gomez, Abad-Mota & Ruckhaus, 2007.
@@ -136,7 +228,7 @@
      *
      * Can be set at runtime via:
      * <pre><code>
-     *   MusicJsonToolbox.globalK3 = 0.5;
+     *   MusicJsonToolbox.globalK2 = 0.5;
      * </pre></code>
      *
      * @constant
@@ -157,7 +249,7 @@
      * @constant
      * @type {number}
      */
-    globalK3: 1,
+    globalK3: 0.1,
 
     /**
      * Holds abc steps for conversion from base12 pitch values (including octaves).
@@ -1231,7 +1323,10 @@
       var divisions = parseInt(object.attributes.divisions);
       var beatType = parseInt(object.attributes.time['beat-type']);
       var keyAdjust = parseInt(object.attributes.key.fifths);
-      var ngrams = this.ngrams(this.notes(object, false, true), search.length * 2);
+      var notes = this.notes(object, false, true);
+      var ngrams = this.ngrams(notes, search.length);
+      ngrams = ngrams.concat(this.ngrams(notes, Math.floor(search.length * 1.5)));
+      ngrams = ngrams.concat(this.ngrams(notes, search.length * 2));
       var similarities = [];
 
       for (var i = 0; i < ngrams.length; i++) {
@@ -1272,63 +1367,7 @@
   }
 }());
 
-},{}],2:[function(require,module,exports){
-var MusicjsonToolbox = require('musicjson-toolbox');
-var musicjson2abc = require('musicjson2abc');
-
-var parserParams = {},
-    renderParams = {};
-    engraverParams = {
-        add_classes: true,
-        staffwidth: 570,
-        listener: {
-            highlight: function(abcElem) {
-                console.log("highlight", abcElem);
-            },
-            modelChanged: function(abcElem) {
-                console.log("modelChanged", abcElem);
-            }
-        }
-    },
-    midiParams = {};
-
-var json1, json2;
-
-function handleFileSelect(event) {
-    var targetId = event.target.id;
-    var render = event.target.dataset.render;
-    var file = event.target.files[0];
-
-    var reader = new FileReader();
-    reader.readAsText(file);
-    reader.onload = (function(theFile) {
-        return function(e) {
-            var json = JSON.parse(e.target.result);
-            var abc = musicjson2abc.json2abc(json);
-            ABCJS.renderAbc(render, abc, parserParams, engraverParams, renderParams);
-
-            if (targetId === 'file1') {
-                json1 = json;
-            } else if (targetId === 'file2') {
-                json2 = json;
-            }
-
-            if (typeof json1 !== 'undefined' && typeof json2 !== 'undefined') {
-                document.getElementById('similarity-ms').innerHTML = MusicjsonToolbox.pitchDurationSimilarity(json1, json2, false);
-                document.getElementById('similarity-gar').innerHTML = MusicjsonToolbox.pitchDurationSimilarity(json1, json2, true);
-                document.getElementById('similarity-parson').innerHTML = MusicjsonToolbox.parsonSimilarity(json1, json2);
-                document.getElementById('similarity-interval').innerHTML = MusicjsonToolbox.intervalSimilarity(json1, json2);
-            }
-        }
-    })(file);
-
-
-}
-document.getElementById('file1').addEventListener('change', handleFileSelect, false);
-document.getElementById('file2').addEventListener('change', handleFileSelect, false);
-
-
-},{"musicjson-toolbox":1,"musicjson2abc":3}],3:[function(require,module,exports){
+},{}],3:[function(require,module,exports){
 var circleOfFifths = {
   "major": {
     "-7": "Cb",
@@ -1510,9 +1549,11 @@ var Parser = require('./lib/abc_parser');
 function convertJsonToAbc(input) {
   var outputData = "";
   outputData += "X:1\n";
-  outputData += "T:"
-    + input.id
-    + "\n";
+  if (typeof input.id !== 'undefined') {
+    outputData += "T:"
+      + input.id
+      + "\n";
+  }
   outputData += "M:"
     + input.attributes.time.beats
     + "/"
@@ -7066,4 +7107,4 @@ module.exports = function() {
     }
   };
 };
-},{"./Common":6}]},{},[2]);
+},{"./Common":6}]},{},[1]);
