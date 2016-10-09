@@ -1664,6 +1664,7 @@ function getAbcClef(sign) {
 
 /**
  * Returns a note in abc notation from given note object (JSON)
+ * NOTE: min duration is 2
  * @param {object} prevNote - The previous note
  * @param {object} curNote - The note that should be transformed to abc
  * @returns {string}
@@ -1682,6 +1683,7 @@ function getAbcNote(prevNote, curNote) {
   }
   var _dotted = '';
   if (curNote.dot === true || curNote.dot === 'true') {
+    _duration = _duration / 1.5;
     _dotted = '>';
   }
 
